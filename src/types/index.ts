@@ -45,6 +45,7 @@ export interface Restaurant {
   rating: number;
   reviewCount: number;
   category: string; // e.g. "Cuisine Béninoise & Africaine", "Grillades & Poissons", "Fast Food & Burgers"
+  cuisineType?: string;
   ownerId: string;
   subscriptionPlan: SubscriptionPlan;
   subscriptionExpiresAt?: string;
@@ -76,6 +77,7 @@ export interface Dish {
   allergens: string[];
   isPopular?: boolean;
   isChefSpecial?: boolean;
+  isSpecialty?: boolean;
   has3DModel?: boolean;
   model3DType?: 'poulet_braise' | 'poisson_grille' | 'igname_pile' | 'burger' | 'alloco' | 'cocktail';
   createdAt: string;

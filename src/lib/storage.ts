@@ -612,8 +612,13 @@ export const FAQ_ITEMS: FAQItem[] = [
 
 // In-Memory & LocalStorage Storage Implementation
 class QRestoStorage {
+  private memoryStore: Map<string, string> = new Map();
+
   private get<T>(key: string, defaultValue: T): T {
-    if (typeof window === 'undefined') return defaultValue;
+    if (typeof window === 'undefined') {
+      const item = this.memoryStore.get(key);
+      return item ? JSON.parse(item) : defaultValue;
+    }
     try {
       const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : defaultValue;
@@ -623,7 +628,10 @@ class QRestoStorage {
   }
 
   private set<T>(key: string, value: T): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      this.memoryStore.set(key, JSON.stringify(value));
+      return;
+    }
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (e) {
@@ -633,24 +641,49 @@ class QRestoStorage {
 
   // Initialization
   public init(): void {
-    if (typeof window === 'undefined') return;
-    if (!localStorage.getItem(STORAGE_KEYS.RESTAURANTS)) {
-      this.set(STORAGE_KEYS.RESTAURANTS, INITIAL_RESTAURANTS);
+    if (typeof window === 'undefined') {
+      if (!this.memoryStore.has(STORAGE_KEYS.RESTAURANTS)) {
+        this.memoryStore.set(STORAGE_KEYS.RESTAURANTS, JSON.stringify(INITIAL_RESTAURANTS));
+      }
+      if (!this.memoryStore.has(STORAGE_KEYS.USERS)) {
+        this.memoryStore.set(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
+      }
+      if (!this.memoryStore.has(STORAGE_KEYS.CATEGORIES)) {
+        this.memoryStore.set(STORAGE_KEYS.CATEGORIES, JSON.stringify(INITIAL_CATEGORIES));
+      }
+      if (!this.memoryStore.has(STORAGE_KEYS.DISHES)) {
+        this.memoryStore.set(STORAGE_KEYS.DISHES, JSON.stringify(INITIAL_DISHES));
+      }
+      if (!this.memoryStore.has(STORAGE_KEYS.TABLES)) {
+        this.memoryStore.set(STORAGE_KEYS.TABLES, JSON.stringify(INITIAL_TABLES));
+      }
+      if (!this.memoryStore.has(STORAGE_KEYS.ORDERS)) {
+        this.memoryStore.set(STORAGE_KEYS.ORDERS, JSON.stringify(INITIAL_ORDERS));
+      }
+      return;
     }
-    if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-      this.set(STORAGE_KEYS.USERS, INITIAL_USERS);
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.CATEGORIES)) {
-      this.set(STORAGE_KEYS.CATEGORIES, INITIAL_CATEGORIES);
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.DISHES)) {
-      this.set(STORAGE_KEYS.DISHES, INITIAL_DISHES);
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.TABLES)) {
-      this.set(STORAGE_KEYS.TABLES, INITIAL_TABLES);
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.ORDERS)) {
-      this.set(STORAGE_KEYS.ORDERS, INITIAL_ORDERS);
+
+    try {
+      if (!localStorage.getItem(STORAGE_KEYS.RESTAURANTS)) {
+        this.set(STORAGE_KEYS.RESTAURANTS, INITIAL_RESTAURANTS);
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
+        this.set(STORAGE_KEYS.USERS, INITIAL_USERS);
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.CATEGORIES)) {
+        this.set(STORAGE_KEYS.CATEGORIES, INITIAL_CATEGORIES);
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.DISHES)) {
+        this.set(STORAGE_KEYS.DISHES, INITIAL_DISHES);
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.TABLES)) {
+        this.set(STORAGE_KEYS.TABLES, INITIAL_TABLES);
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.ORDERS)) {
+        this.set(STORAGE_KEYS.ORDERS, INITIAL_ORDERS);
+      }
+    } catch (e) {
+      console.warn('Storage init error:', e);
     }
   }
 

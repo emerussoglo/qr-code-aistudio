@@ -1,8 +1,22 @@
 'use client';
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  Search,
+  ShoppingBag,
+  Store,
+  ChevronDown,
+  LayoutDashboard,
+  Clock,
+  LogOut,
+  Menu as MenuIcon,
+  X,
+  Compass,
+  QrCode,
+  Sparkles,
+} from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { FaIcon } from './Icon';
 
 export const Navbar: React.FC = () => {
   const {
@@ -25,201 +39,283 @@ export const Navbar: React.FC = () => {
     } else {
       navigateTo('restaurants');
     }
+    setMobileMenuOpen(false);
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-stone-200">
+    <header className="sticky top-0 z-50 w-full bg-[#fbf9f5]/90 backdrop-blur-xl border-b border-stone-200/80 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 md:h-18 gap-4">
-          {/* Brand Logo - EXACT as Screenshot 1 */}
-          <button
+        <div className="flex items-center justify-between h-16 sm:h-20 gap-3">
+          {/* Brand Logo with animated emblem */}
+          <motion.button
             type="button"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => navigateTo('landing')}
-            className="flex items-center gap-1 cursor-pointer select-none shrink-0 group focus:outline-hidden"
+            className="flex items-center gap-2 cursor-pointer select-none shrink-0 group focus:outline-hidden"
           >
-            <span className="text-2xl sm:text-[26px] font-black tracking-tight text-stone-900 transition-transform group-hover:scale-[1.02]">
-              Q<span className="text-amber-500">Resto</span>
-            </span>
-          </button>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-600 via-amber-500 to-orange-400 text-stone-950 flex items-center justify-center font-black text-lg sm:text-xl shadow-md shadow-amber-500/20 group-hover:shadow-amber-500/35 transition-all">
+              Q
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-xl sm:text-2xl font-black tracking-tight text-stone-950 leading-none">
+                Q<span className="text-amber-600">Resto</span>
+              </span>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700/80">
+                Africa · Digital
+              </span>
+            </div>
+          </motion.button>
 
-          {/* Central Search Bar - EXACT as Screenshot 1 */}
-          <div className="hidden md:flex flex-1 max-w-md mx-4">
-            <form onSubmit={handleSearchSubmit} className="relative w-full">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
-                <FaIcon name="fa-solid fa-magnifying-glass" className="text-xs" />
+          {/* Central Search Bar with micro-interaction */}
+          <div className="hidden md:flex flex-1 max-w-md mx-6">
+            <form onSubmit={handleSearchSubmit} className="relative w-full group">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400 group-focus-within:text-amber-600 transition-colors">
+                <Search className="w-4 h-4" />
               </div>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher un restaurant ou un plat..."
-                className="w-full pl-9 pr-4 py-2 bg-stone-100/90 hover:bg-stone-100 focus:bg-white text-xs sm:text-sm text-stone-900 rounded-full border border-transparent focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 transition-all outline-hidden placeholder:text-stone-400 font-normal"
+                placeholder="Rechercher un plat (Amiwo, Poulet...), un restaurant..."
+                className="w-full pl-10 pr-4 py-2 bg-stone-100/80 hover:bg-stone-100 focus:bg-white text-xs sm:text-sm text-stone-900 rounded-full border border-stone-200/60 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all outline-hidden placeholder:text-stone-400 font-medium"
               />
             </form>
           </div>
 
-          {/* Right Navigation Links & Action Button - EXACT as Screenshot 1 */}
-          <div className="flex items-center gap-4 sm:gap-6">
+          {/* Right Navigation Links & Action Button */}
+          <div className="flex items-center gap-3 sm:gap-5">
             <button
               type="button"
               onClick={() => navigateTo('restaurants')}
-              className={`hidden sm:inline-block text-xs sm:text-sm font-semibold transition-colors ${
+              className={`hidden sm:flex items-center gap-1.5 text-xs sm:text-sm font-semibold transition-all px-3 py-1.5 rounded-full ${
                 currentView === 'restaurants'
-                  ? 'text-amber-600 font-bold'
-                  : 'text-stone-700 hover:text-stone-950'
+                  ? 'bg-amber-100/70 text-amber-800'
+                  : 'text-stone-700 hover:text-stone-950 hover:bg-stone-100'
               }`}
             >
-              Restaurants
+              <Compass className="w-3.5 h-3.5 text-amber-600" />
+              <span>Restaurants</span>
             </button>
 
             <button
               type="button"
-              onClick={() => navigateTo('restaurants', { filter: 'nearby' })}
-              className="hidden sm:inline-block text-xs sm:text-sm font-semibold text-stone-700 hover:text-stone-950 transition-colors"
+              onClick={() => navigateTo('order-tracking')}
+              className={`hidden md:flex items-center gap-1.5 text-xs sm:text-sm font-semibold transition-all px-3 py-1.5 rounded-full ${
+                currentView === 'order-tracking'
+                  ? 'bg-amber-100/70 text-amber-800'
+                  : 'text-stone-700 hover:text-stone-950 hover:bg-stone-100'
+              }`}
             >
-              À proximité
+              <Clock className="w-3.5 h-3.5 text-stone-500" />
+              <span>Suivre commande</span>
             </button>
 
-            {/* Cart Icon */}
-            <button
+            {/* Cart Icon with bouncing counter */}
+            <motion.button
               type="button"
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.94 }}
               onClick={() => navigateTo('cart')}
-              className="relative p-2 text-stone-700 hover:text-stone-950 transition-transform hover:scale-105"
+              className="relative p-2.5 rounded-full bg-stone-100/90 hover:bg-stone-200/90 text-stone-800 hover:text-stone-950 transition-colors cursor-pointer"
               title="Mon panier"
             >
-              <FaIcon name="fa-solid fa-bag-shopping" className="text-base sm:text-lg" />
+              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center shadow-sm animate-bounce">
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 bg-gradient-to-r from-amber-600 to-orange-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-md shadow-amber-600/30"
+                >
                   {cartCount}
-                </span>
+                </motion.span>
               )}
-            </button>
+            </motion.button>
 
             {/* Connexion or Profile Button */}
             {currentUser ? (
               <div className="relative">
-                <button
+                <motion.button
                   type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-900 text-xs font-bold transition-all"
+                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-stone-900 text-white text-xs font-bold shadow-xs hover:bg-stone-800 transition-all cursor-pointer"
                 >
-                  <div className="w-6 h-6 rounded-full bg-stone-900 text-white flex items-center justify-center text-[10px] font-bold">
-                    {currentUser.firstName?.[0] || 'M'}
+                  <div className="w-6 h-6 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center text-xs font-black">
+                    {currentUser.firstName?.[0] || 'R'}
                   </div>
-                  <span className="hidden sm:inline max-w-[120px] truncate">
+                  <span className="hidden sm:inline max-w-[120px] truncate font-medium">
                     {currentRestaurant?.name || currentUser.firstName}
                   </span>
-                  <FaIcon name="fa-solid fa-chevron-down" className="text-[10px] text-stone-500" />
-                </button>
+                  <ChevronDown className="w-3.5 h-3.5 text-stone-400" />
+                </motion.button>
 
-                {userDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-stone-200 py-2 z-50 animate-fade-in-up">
-                    <div className="px-4 py-2 border-b border-stone-100">
-                      <p className="text-xs font-bold text-stone-900 truncate">
-                        {currentUser.firstName} {currentUser.lastName}
-                      </p>
-                      <p className="text-[11px] text-stone-400 truncate">{currentUser.email}</p>
-                    </div>
-                    {currentRestaurant && (
+                <AnimatePresence>
+                  {userDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-2xl border border-stone-200/90 py-2 z-50"
+                    >
+                      <div className="px-4 py-2.5 border-b border-stone-100">
+                        <p className="text-xs font-bold text-stone-900 truncate">
+                          {currentUser.firstName} {currentUser.lastName}
+                        </p>
+                        <p className="text-[11px] text-stone-400 truncate">{currentUser.email}</p>
+                      </div>
+                      {currentRestaurant && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUserDropdownOpen(false);
+                            navigateTo('dashboard');
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-xs font-semibold text-stone-800 hover:bg-amber-50 hover:text-amber-800 flex items-center gap-2.5 transition-colors"
+                        >
+                          <LayoutDashboard className="w-4 h-4 text-amber-600" />
+                          <span>Mon Dashboard Restaurant</span>
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
                           setUserDropdownOpen(false);
-                          navigateTo('dashboard');
+                          navigateTo('order-tracking');
                         }}
-                        className="w-full text-left px-4 py-2 text-xs font-semibold text-stone-800 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2.5 text-xs font-semibold text-stone-800 hover:bg-stone-50 flex items-center gap-2.5 transition-colors"
                       >
-                        <FaIcon name="fa-solid fa-table-columns" className="text-amber-500" />
-                        <span>Mon Dashboard Restaurant</span>
+                        <Clock className="w-4 h-4 text-stone-500" />
+                        <span>Mes Commandes</span>
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUserDropdownOpen(false);
-                        navigateTo('order-tracking');
-                      }}
-                      className="w-full text-left px-4 py-2 text-xs font-semibold text-stone-800 hover:bg-stone-50 flex items-center gap-2"
-                    >
-                      <FaIcon name="fa-solid fa-route" className="text-stone-400" />
-                      <span>Suivre une commande</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUserDropdownOpen(false);
-                        logout();
-                      }}
-                      className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-stone-100 mt-1"
-                    >
-                      <FaIcon name="fa-solid fa-arrow-right-from-bracket" />
-                      <span>Déconnexion</span>
-                    </button>
-                  </div>
-                )}
+                      <div className="border-t border-stone-100 my-1" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          logout();
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Déconnexion</span>
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => navigateTo('login')}
-                className="px-5 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-semibold text-xs sm:text-sm shadow-xs transition-all hover:scale-[1.02]"
-              >
-                Connexion
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigateTo('login')}
+                  className="hidden sm:inline-block px-3 py-1.5 text-xs font-semibold text-stone-700 hover:text-stone-950 hover:bg-stone-100 rounded-full transition-colors"
+                >
+                  Connexion
+                </button>
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => navigateTo('register-restaurant')}
+                  className="px-3.5 sm:px-4 py-2 rounded-full bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-700 hover:to-orange-600 text-white font-bold text-xs shadow-md shadow-amber-600/20 hover:shadow-amber-600/35 transition-all flex items-center gap-1.5"
+                >
+                  <Store className="w-3.5 h-3.5" />
+                  <span>Inscrire mon resto</span>
+                </motion.button>
+              </div>
             )}
 
-            {/* Mobile menu toggle */}
+            {/* Mobile Hamburger toggle */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-stone-700 hover:text-stone-900"
+              className="md:hidden p-2 text-stone-700 hover:text-stone-950 focus:outline-hidden"
+              aria-label="Menu"
             >
-              <FaIcon name={mobileMenuOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-bars'} className="text-lg" />
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Search and Menu Dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-stone-200 space-y-3 animate-fade-in-up">
-            <form onSubmit={handleSearchSubmit} className="relative w-full">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher restaurant ou plat..."
-                className="w-full pl-9 pr-4 py-2 bg-stone-100 text-xs rounded-full border border-stone-200 outline-hidden"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
-                <FaIcon name="fa-solid fa-magnifying-glass" className="text-xs" />
-              </div>
-            </form>
-
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigateTo('restaurants');
-                }}
-                className="p-2 text-xs font-bold text-center bg-stone-100 rounded-xl text-stone-800"
-              >
-                Tous les restaurants
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigateTo('order-tracking');
-                }}
-                className="p-2 text-xs font-bold text-center bg-amber-50 text-amber-900 rounded-xl"
-              >
-                Suivre une commande
-              </button>
+        {/* Mobile Search Bar */}
+        <div className="md:hidden pb-3">
+          <form onSubmit={handleSearchSubmit} className="relative w-full">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
+              <Search className="w-3.5 h-3.5" />
             </div>
-          </div>
-        )}
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher un plat, un restaurant..."
+              className="w-full pl-9 pr-3 py-1.5 bg-stone-100 text-xs text-stone-900 rounded-full border border-stone-200 outline-hidden font-medium"
+            />
+          </form>
+        </div>
       </div>
+
+      {/* Mobile Drawer Menu */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="md:hidden border-t border-stone-200 bg-white/95 backdrop-blur-lg px-4 pt-3 pb-6 flex flex-col gap-3 overflow-hidden"
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                navigateTo('restaurants');
+              }}
+              className="text-left py-2 font-semibold text-sm text-stone-800 flex items-center gap-2"
+            >
+              <Compass className="w-4 h-4 text-amber-600" />
+              <span>Explorer les restaurants</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                navigateTo('order-tracking');
+              }}
+              className="text-left py-2 font-semibold text-sm text-stone-800 flex items-center gap-2"
+            >
+              <Clock className="w-4 h-4 text-stone-500" />
+              <span>Suivre une commande</span>
+            </button>
+
+            {!currentUser && (
+              <div className="pt-2 border-t border-stone-100 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    navigateTo('login');
+                  }}
+                  className="w-full py-2.5 rounded-xl border border-stone-200 text-stone-800 font-bold text-xs"
+                >
+                  Connexion gérant
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    navigateTo('register-restaurant');
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-500 text-white font-bold text-xs"
+                >
+                  Digitaliser mon restaurant gratuitement
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 };

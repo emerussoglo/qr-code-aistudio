@@ -1,613 +1,1231 @@
 'use client';
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  QrCode,
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  Zap,
+  RotateCw,
+  Utensils,
+  Smartphone,
+  ChevronDown,
+  Star,
+  CheckCircle2,
+  Clock,
+  Printer,
+  Compass,
+  Store,
+  Layers,
+  Award,
+  Flame,
+  Check,
+  X,
+  Eye,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { FaIcon } from '../common/Icon';
+import { Dish3DViewer } from '../3d/Dish3DViewer';
+import { storage } from '../../lib/storage';
 
 export const LandingPage: React.FC = () => {
   const { navigateTo } = useApp();
-  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
+  // State for interactive features
+  const [activeSpecialtyTab, setActiveSpecialtyTab] = useState<'all' | 'signature' | 'street' | 'drinks'>('all');
+  const [selected3DDish, setSelected3DDish] = useState<{
+    id: string;
+    name: string;
+    price: number;
+    description: string;
+    modelType: 'poulet_braise' | 'poisson_grille' | 'igname_pile' | 'burger' | 'alloco' | 'cocktail';
+    ingredients: string[];
+    prepTime: string;
+  } | null>(null);
+
+  // Live QR Demo State
+  const [demoTable, setDemoTable] = useState<number>(4);
+  const [demoRestoName, setDemoRestoName] = useState<string>('Chez Mama Bénin');
+  const [demoColor, setDemoColor] = useState<string>('#d97706'); // Amber 600
+
+  // Pricing toggle (Mensuel / Annuel)
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+
+  // FAQ state
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   const toggleFaq = (idx: number) => {
     setOpenFaqIndex(openFaqIndex === idx ? null : idx);
   };
 
+  // Curated African Dishes with 3D Models & Photo Assets
+  const dishesShowcase = [
+    {
+      id: 'dish_poulet',
+      name: 'Poulet Bicyclette Braisé Kpédji',
+      category: 'signature',
+      price: 4500,
+      currency: 'FCFA',
+      rating: 4.9,
+      reviewsCount: 142,
+      prepTime: '20 min',
+      image: '/images/poulet_braise_1790196218496.jpg',
+      modelType: 'poulet_braise' as const,
+      description: 'Poulet local fermier mariné 24h aux épices gboma et gingembre frais, grillé au feu de bois avec alloco doré et piment vert écrasé.',
+      ingredients: ['Poulet bicyclette', 'Alloco bananes mûres', 'Piment vert maison', 'Oignons caramélisés'],
+      isPopular: true,
+    },
+    {
+      id: 'dish_amiwo',
+      name: 'Amiwo Rouge au Wagashi & Poulet',
+      category: 'signature',
+      price: 3800,
+      currency: 'FCFA',
+      rating: 4.8,
+      reviewsCount: 98,
+      prepTime: '15 min',
+      image: '/images/wagashi_amiwo_1790196228866.jpg',
+      modelType: 'igname_pile' as const,
+      description: 'Pâte de maïs rouge parfumée au bouillon de poulet fermier, accompagnée de fromage Peulh Wagashi poêlé et sauce tomate pimentée.',
+      ingredients: ['Farine de maïs fine', 'Fromage Peulh Wagashi', 'Coulis de tomates fraîches', 'Épices royales'],
+      isPopular: true,
+    },
+    {
+      id: 'dish_akara',
+      name: 'Plateau Akara Croustillants & Sauces',
+      category: 'street',
+      price: 2200,
+      currency: 'FCFA',
+      rating: 4.9,
+      reviewsCount: 86,
+      prepTime: '10 min',
+      image: '/images/akara_streetfood_1790196240482.jpg',
+      modelType: 'alloco' as const,
+      description: 'Beignets de haricots blancs soufflés et ultra-croustillants, servis avec sauce piquante oignon-tomate et kluiklui concassé.',
+      ingredients: ['Haricots blancs bio', 'Sauce dja maison', 'Échalotes dorées', 'Piment doux'],
+      isPopular: false,
+    },
+    {
+      id: 'dish_poisson',
+      name: 'Capitaine Braisé à la Braise d’Atacora',
+      category: 'signature',
+      price: 5500,
+      currency: 'FCFA',
+      rating: 5.0,
+      reviewsCount: 114,
+      prepTime: '25 min',
+      image: '/images/resto_ambiance_1790196207320.jpg',
+      modelType: 'poisson_grille' as const,
+      description: 'Poisson frais du jour pêché au large de Grand-Popo, assaisonné aux herbes sauvages avec igname frite et sauce moyo.',
+      ingredients: ['Capitaine entier frais', 'Frites d’igname blanche', 'Sauce moyo citronnée', 'Condiments traditionnels'],
+      isPopular: true,
+    },
+  ];
+
+  const filteredDishes = dishesShowcase.filter((dish) => {
+    if (activeSpecialtyTab === 'all') return true;
+    return dish.category === activeSpecialtyTab;
+  });
+
+  const featuredRestaurants = [
+    {
+      name: 'Chez Mama Bénin',
+      neighborhood: 'Cadjehoun, Cotonou',
+      specialty: 'Cuisine traditionnelle béninoise & grillades',
+      rating: 4.9,
+      reviews: 320,
+      status: 'Ouvert en continu',
+      tables: 18,
+      slug: 'chez-mama-benin',
+      image: '/images/resto_ambiance_1790196207320.jpg',
+      badge: 'Le plus populaire',
+    },
+    {
+      name: 'Le Jardin Fidjrossè',
+      neighborhood: 'Bord de Mer, Fidjrossè Plage',
+      specialty: 'Fruits de mer, poissons grillés & cocktails',
+      rating: 4.8,
+      reviews: 215,
+      status: 'Ouvert · Service terrasse',
+      tables: 24,
+      slug: 'le-jardin-fidjrosse',
+      image: '/images/poulet_braise_1790196218496.jpg',
+      badge: 'Vue Océan',
+    },
+    {
+      name: 'Délice Cotonou & Lounge',
+      neighborhood: 'Haie Vive, Cotonou',
+      specialty: 'Fusion africaine, burgers gourmets & mocktails',
+      rating: 4.7,
+      reviews: 180,
+      status: 'Ouvert jusqu’à 02h00',
+      tables: 15,
+      slug: 'delice-cotonou',
+      image: '/images/wagashi_amiwo_1790196228866.jpg',
+      badge: 'Ambiance lounge',
+    },
+  ];
+
   const faqItems = [
     {
-      q: "Comment fonctionne QResto pour mon restaurant ?",
-      a: "QResto vous permet de créer votre menu digital en quelques clics. Vous obtenez un lien web unique et des QR codes à disposer sur vos tables. Vos clients scannent le QR code avec leur smartphone pour consulter la carte, visualiser les plats en 3D et commander directement en cuisine ou en livraison, sans avoir à télécharger d'application."
+      q: 'Comment fonctionne QResto concrètement pour mon établissement ?',
+      a: 'Vous créez votre restaurant en 2 minutes. Vos QR codes personnalisés par table sont générés automatiquement. Vos clients scannent avec l’appareil photo de leur smartphone, consultent le menu interactif (avec visualisation 3D des plats), commandent sans installer d’application et peuvent régler directement par MTN MoMo, Moov Money ou à la livraison.',
     },
     {
-      q: "Ai-je besoin d'une application à installer ?",
-      a: "Non, aucune application n'est nécessaire ni pour vous, ni pour vos clients ! QResto fonctionne directement dans le navigateur mobile (Chrome, Safari, etc.) sur n'importe quel smartphone (Android, iPhone), garantissant un accès instantané en moins de 2 secondes."
+      q: 'Les clients doivent-ils télécharger une application sur l’App Store ou Play Store ?',
+      a: 'Absolument aucune installation ! C’est la force numéro 1 de QResto : 100% web instantané. Le scan ouvre immédiatement le menu fluide en moins de 1,5 seconde, même avec une connexion 3G/4G modeste.',
     },
     {
-      q: "Comment mes clients paient-ils ?",
-      a: "Vos clients peuvent régler selon vos préférences : par MTN Mobile Money, Moov Money, carte bancaire ou directement en espèces lors du service à table ou à la livraison."
+      q: 'Comment s’effectue la gestion des commandes en cuisine ?',
+      a: 'Chaque commande passée depuis une table arrive instantanément sur votre tableau de bord restaurant (sur tablette, smartphone ou écran de cuisine) avec notification sonore, détails des articles, remarques spéciales et numéro de table.',
     },
     {
-      q: "Puis-je modifier mon menu à tout moment ?",
-      a: "Oui, absolument. Depuis votre tableau de bord restaurant, vous pouvez ajouter ou retirer un plat, modifier un prix, marquer un plat en rupture ou activer une promotion en temps réel. Les QR codes déjà imprimés sur vos tables restent valables et se mettent à jour instantanément."
+      q: 'Quels sont les modes de paiement pris en charge au Bénin ?',
+      a: 'QResto supporte nativement MTN Mobile Money, Moov Money Bénin, le paiement en espèces (Cash à table) et les cartes bancaires internationales (Visa, Mastercard).',
     },
     {
-      q: "Combien ça coûte ?",
-      a: "Nous proposons une formule Starter Gratuite pour démarrer en toute sérénité, puis une formule Pro à 5 000 FCFA / mois et Business à 8 000 FCFA / mois avec fonctionnalités avancées (analytics en direct, visualisation 3D, multi-établissements) sans aucun engagement."
+      q: 'Puis-je modifier mes prix, ajouter des plats ou désactiver un plat épuisé ?',
+      a: 'Oui, en temps réel depuis votre espace gérant. La mise à jour est immédiate pour tous les clients scannant les tables, sans jamais avoir besoin de réimprimer les chevalets QR.',
     },
-    {
-      q: "Mes clients ont-ils besoin de créer un compte ?",
-      a: "Non, les clients n'ont aucun compte à créer. Ils s'installent à table, scannent, choisissent leurs plats et commandent. C'est simple, rapide et sans friction."
-    }
   ];
 
   return (
-    <div className="w-full bg-white overflow-hidden text-stone-900">
-      {/* 1. HERO SECTION (Screenshot 1) */}
-      <section className="relative pt-12 pb-16 md:pt-20 md:pb-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-stone-50/70 via-white to-white">
-        <div className="max-w-4xl mx-auto text-center flex flex-col items-center">
-          {/* Location Badge */}
-          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-amber-50/90 border border-amber-200/80 text-amber-900 text-xs font-semibold mb-6 shadow-xs animate-fade-in-up">
-            <span className="text-amber-600">📍</span>
-            <span>La digitalisation des restaurants au Bénin</span>
-          </div>
+    <div className="w-full bg-[#fbf9f5] text-stone-900 overflow-x-hidden">
+      {/* 1. HERO SECTION WITH RICH GOURMET AESTHETICS & MOTION */}
+      <section className="relative pt-12 pb-20 sm:pt-20 sm:pb-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        {/* Subtle radial warmth background glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-amber-200/40 via-orange-100/20 to-transparent blur-3xl pointer-events-none -z-10" />
 
-          {/* Centered Main Title */}
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-stone-900 tracking-tight leading-[1.15] mb-6 text-center animate-fade-in-up">
-            Découvrez. Commandez.<br />
-            <span className="text-amber-500">Savourez.</span>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="text-base sm:text-lg md:text-xl text-stone-600 font-normal max-w-2xl mx-auto leading-relaxed mb-8 text-center animate-fade-in-up">
-            QResto connecte les restaurants et clients via une expérience digitale moderne, fluide et innovante.
-          </p>
-
-          {/* 3 Centered CTA Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-3.5 mb-14 animate-fade-in-up">
-            {/* Button 1: Trouver un restaurant */}
-            <button
-              type="button"
-              onClick={() => navigateTo('restaurants')}
-              className="px-6 sm:px-8 py-3.5 rounded-full bg-stone-900 hover:bg-stone-800 active:bg-stone-950 text-white font-bold text-sm shadow-md transition-all duration-200 hover:scale-[1.02] flex items-center gap-2"
+        <div className="max-w-7xl mx-auto">
+          {/* Main Hero Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+            {/* Left Column: Editorial Value Proposition & Action Triggers */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="lg:col-span-7 text-left flex flex-col items-start"
             >
-              <span>Trouver un restaurant</span>
-              <FaIcon name="fa-solid fa-arrow-right" className="text-xs" />
-            </button>
+              {/* Refined Pill-Free Region Label with Live Pulse Beacon */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 border border-amber-200/80 shadow-xs mb-6 backdrop-blur-xs">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                </span>
+                <span className="text-xs font-bold text-amber-900 tracking-wide">
+                  La digitalisation des restaurants au Bénin & en Afrique
+                </span>
+              </div>
 
-            {/* Button 2: Suivre une commande */}
-            <button
-              type="button"
-              onClick={() => navigateTo('order-tracking')}
-              className="px-5 sm:px-6 py-3.5 rounded-full bg-white hover:bg-stone-50 active:bg-stone-100 text-stone-900 font-bold text-sm border border-stone-200 shadow-xs transition-all duration-200 hover:scale-[1.02] flex items-center gap-2"
+              {/* Title with Playfair Display & High Contrast Typography */}
+              <h1 className="text-4xl sm:text-6xl xl:text-7xl font-black text-stone-950 tracking-tight leading-[1.08] mb-6 font-display">
+                L’art culinaire d’Afrique,{' '}
+                <span className="relative inline-block text-amber-600 italic">
+                  sublimé
+                  <svg
+                    className="absolute -bottom-2 left-0 w-full text-amber-400/40 -z-10 h-3"
+                    viewBox="0 0 100 20"
+                    preserveAspectRatio="none"
+                  >
+                    <path d="M0,10 Q50,0 100,10" fill="none" stroke="currentColor" strokeWidth="8" />
+                  </svg>
+                </span>{' '}
+                par le digital.
+              </h1>
+
+              {/* Subheading */}
+              <p className="text-base sm:text-lg md:text-xl text-stone-600 leading-relaxed mb-8 max-w-2xl font-normal">
+                Menus QR dynamiques par table, visualiseur 3D interactif et encaissement Mobile Money instantané sans friction pour les restaurants et leurs clients.
+              </p>
+
+              {/* Animated Button Row */}
+              <div className="flex flex-wrap items-center gap-3.5 sm:gap-4 w-full sm:w-auto mb-10">
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigateTo('restaurants')}
+                  className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-gradient-to-r from-amber-600 via-orange-500 to-amber-600 text-white font-extrabold text-sm shadow-xl shadow-amber-600/25 hover:shadow-amber-600/40 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                >
+                  <Utensils className="w-4 h-4" />
+                  <span>Explorer les restaurants</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </motion.button>
+
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigateTo('register-restaurant')}
+                  className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-stone-900 text-white font-bold text-sm shadow-lg hover:bg-stone-800 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Store className="w-4 h-4 text-amber-400" />
+                  <span>Digitaliser mon restaurant</span>
+                </motion.button>
+
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigateTo('order-tracking')}
+                  className="w-full sm:w-auto px-5 py-4 rounded-2xl bg-white hover:bg-stone-50 border border-stone-200/80 text-stone-800 font-bold text-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Clock className="w-4 h-4 text-stone-500" />
+                  <span>Suivre commande</span>
+                </motion.button>
+              </div>
+
+              {/* Key Trust Stats without AI Slop */}
+              <div className="grid grid-cols-3 gap-6 pt-4 border-t border-stone-200/80 w-full max-w-xl">
+                <div>
+                  <div className="text-2xl sm:text-3xl font-black text-stone-950 font-display">0s</div>
+                  <div className="text-xs text-stone-500 font-medium mt-0.5">Téléchargement requis</div>
+                </div>
+                <div>
+                  <div className="text-2xl sm:text-3xl font-black text-amber-600 font-display">+32%</div>
+                  <div className="text-xs text-stone-500 font-medium mt-0.5">Panier moyen constaté</div>
+                </div>
+                <div>
+                  <div className="text-2xl sm:text-3xl font-black text-stone-950 font-display">1.5s</div>
+                  <div className="text-xs text-stone-500 font-medium mt-0.5">Vitesse d’affichage QR</div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Right Column: Live Interactive Dual Showcase (Interactive Phone & 3D Dish Live Demo) */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.9, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+              className="lg:col-span-5 relative"
             >
-              <FaIcon name="fa-solid fa-box" className="text-stone-700 text-xs" />
-              <span>Suivre une commande</span>
-            </button>
+              {/* Ambient decoration ring */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-amber-400/20 to-orange-500/10 rounded-[3rem] blur-2xl -z-10 transform rotate-2" />
 
-            {/* Button 3: Créer mon restaurant */}
-            <button
-              type="button"
-              onClick={() => navigateTo('register-restaurant')}
-              className="px-4 py-3.5 text-stone-700 hover:text-stone-950 font-bold text-sm transition-colors"
-            >
-              Créer mon restaurant
-            </button>
-          </div>
-
-          {/* 5 Process Steps Horizontal Flow */}
-          <div className="w-full max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3.5 pt-4">
-            {/* Step 1 */}
-            <div className="group bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-1 text-left relative flex flex-col justify-between">
-              <div>
-                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm mb-3.5 group-hover:scale-110 transition-transform">
-                  <FaIcon name="fa-solid fa-magnifying-glass" />
+              {/* Interactive Phone Mockup Card */}
+              <div className="relative mx-auto max-w-[340px] sm:max-w-[360px] bg-white rounded-[2.5rem] p-4 shadow-2xl border-4 border-stone-900/90 shadow-amber-900/15">
+                {/* Speaker pill notch */}
+                <div className="w-24 h-4 bg-stone-900 rounded-full mx-auto mb-3 flex items-center justify-center">
+                  <div className="w-3 h-3 rounded-full bg-stone-700/50" />
                 </div>
-                <h3 className="text-sm font-bold text-stone-900 mb-1">Recherche</h3>
-                <p className="text-xs text-stone-500 leading-relaxed">
-                  Trouvez un restaurant ou un plat près de vous.
-                </p>
-              </div>
-              <div className="hidden md:block absolute -right-2.5 top-1/2 -translate-y-1/2 text-stone-300 text-xs pointer-events-none z-10">
-                →
-              </div>
-            </div>
 
-            {/* Step 2 */}
-            <div className="group bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-1 text-left relative flex flex-col justify-between">
-              <div>
-                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm mb-3.5 group-hover:scale-110 transition-transform">
-                  <FaIcon name="fa-solid fa-utensils" />
+                {/* Simulated Screen Content */}
+                <div className="bg-[#fbf9f5] rounded-3xl p-4 border border-stone-200/80 overflow-hidden text-left">
+                  {/* Restaurant Header */}
+                  <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500 text-stone-950 font-black text-sm flex items-center justify-center shadow-xs">
+                        Q
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-stone-900 leading-tight">Chez Mama Bénin</h4>
+                        <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 font-bold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <span>Table 04 · En service</span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-stone-900 text-white text-[10px] font-bold">
+                      QR Direct
+                    </span>
+                  </div>
+
+                  {/* Featured interactive dish inside simulator */}
+                  <div className="mt-3.5 relative bg-white rounded-2xl p-3 border border-stone-200/90 shadow-sm group">
+                    <div className="relative h-40 rounded-xl overflow-hidden mb-3 bg-stone-100">
+                      <img
+                        src="/images/poulet_braise_1790196218496.jpg"
+                        alt="Poulet braisé"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-stone-950/80 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1">
+                        <Flame className="w-3 h-3 text-amber-400" />
+                        <span>Best-seller</span>
+                      </div>
+                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-amber-500 text-stone-950 text-[10px] font-extrabold flex items-center gap-1 shadow-sm">
+                        <Sparkles className="w-3 h-3" />
+                        <span>3D Dispo</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h5 className="text-xs font-bold text-stone-900">Poulet Bicyclette Braisé</h5>
+                        <p className="text-[11px] text-stone-500 line-clamp-1">Alloco doré, piment vert maison & oignons</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs font-black text-amber-600">4 500</div>
+                        <div className="text-[9px] text-stone-400 font-bold">FCFA</div>
+                      </div>
+                    </div>
+
+                    {/* Interactive Action inside phone */}
+                    <div className="mt-3 pt-3 border-t border-stone-100 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelected3DDish({
+                            id: 'dish_poulet',
+                            name: 'Poulet Bicyclette Braisé Kpédji',
+                            price: 4500,
+                            description: 'Poulet fermier mariné 24h aux épices royales avec alloco croustillant.',
+                            modelType: 'poulet_braise',
+                            ingredients: ['Poulet bicyclette', 'Alloco bananes mûres', 'Piment vert maison'],
+                            prepTime: '20 min',
+                          })
+                        }
+                        className="flex-1 py-2 rounded-xl bg-amber-100/80 hover:bg-amber-100 text-amber-900 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <RotateCw className="w-3 h-3 text-amber-700 animate-spin" style={{ animationDuration: '6s' }} />
+                        <span>Tourner en 3D 360°</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => navigateTo('restaurant-detail', { slug: 'chez-mama-benin', table: '4' })}
+                        className="px-3 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-[11px] transition-colors cursor-pointer"
+                      >
+                        Commander
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Payment Icons Footer in simulator */}
+                  <div className="mt-3 bg-stone-100/80 rounded-xl p-2 flex items-center justify-between text-[10px] text-stone-600 font-medium">
+                    <span className="flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                      <span>MoMo & Moov acceptés</span>
+                    </span>
+                    <span className="font-bold text-stone-800">100% Sécurisé</span>
+                  </div>
                 </div>
-                <h3 className="text-sm font-bold text-stone-900 mb-1">Menu digital</h3>
-                <p className="text-xs text-stone-500 leading-relaxed">
-                  Parcourez le menu interactif du restaurant.
-                </p>
               </div>
-              <div className="hidden md:block absolute -right-2.5 top-1/2 -translate-y-1/2 text-stone-300 text-xs pointer-events-none z-10">
-                →
-              </div>
-            </div>
 
-            {/* Step 3 */}
-            <div className="group bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-1 text-left relative flex flex-col justify-between">
-              <div>
-                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm mb-3.5 group-hover:scale-110 transition-transform">
-                  <FaIcon name="fa-solid fa-cube" />
+              {/* Floating Animated Badges outside phone */}
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                className="absolute -top-4 -left-6 sm:-left-8 bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-xl border border-stone-200/90 text-left flex items-center gap-3 z-20"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/30">
+                  <QrCode className="w-5 h-5" />
                 </div>
-                <h3 className="text-sm font-bold text-stone-900 mb-1">Visualisation 3D</h3>
-                <p className="text-xs text-stone-500 leading-relaxed">
-                  Admirez vos plats en 3D avant de commander.
-                </p>
-              </div>
-              <div className="hidden md:block absolute -right-2.5 top-1/2 -translate-y-1/2 text-stone-300 text-xs pointer-events-none z-10">
-                →
-              </div>
-            </div>
-
-            {/* Step 4 */}
-            <div className="group bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-1 text-left relative flex flex-col justify-between">
-              <div>
-                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm mb-3.5 group-hover:scale-110 transition-transform">
-                  <FaIcon name="fa-solid fa-bag-shopping" />
+                <div>
+                  <div className="text-xs font-bold text-stone-900">Scan Instantané</div>
+                  <div className="text-[11px] text-stone-500">Table assignée automatiquement</div>
                 </div>
-                <h3 className="text-sm font-bold text-stone-900 mb-1">Commande</h3>
-                <p className="text-xs text-stone-500 leading-relaxed">
-                  Ajoutez au panier et commandez en quelques clics.
-                </p>
-              </div>
-              <div className="hidden md:block absolute -right-2.5 top-1/2 -translate-y-1/2 text-stone-300 text-xs pointer-events-none z-10">
-                →
-              </div>
-            </div>
+              </motion.div>
 
-            {/* Step 5 */}
-            <div className="group bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-1 text-left flex flex-col justify-between">
-              <div>
-                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm mb-3.5 group-hover:scale-110 transition-transform">
-                  <FaIcon name="fa-solid fa-motorcycle" />
+              <motion.div
+                animate={{ y: [0, 8, 0] }}
+                transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+                className="absolute -bottom-6 -right-4 sm:-right-6 bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-xl border border-stone-200/90 text-left flex items-center gap-3 z-20"
+              >
+                <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/30">
+                  <Zap className="w-5 h-5" />
                 </div>
-                <h3 className="text-sm font-bold text-stone-900 mb-1">Livraison</h3>
-                <p className="text-xs text-stone-500 leading-relaxed">
-                  Suivez votre commande en temps réel.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 2. DIGITIZE FEATURES SECTION (Screenshot 2) */}
-      <section className="py-20 md:py-28 bg-white border-t border-stone-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-stone-900 tracking-tight mb-4">
-            Tout ce qu'il faut pour digitaliser votre restaurant
-          </h2>
-          <p className="text-base sm:text-lg text-stone-500 max-w-2xl mx-auto mb-14">
-            Une plateforme complète, pensée pour les restaurateurs africains.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
-            {/* Card 1: QR Code table */}
-            <div className="p-7 rounded-3xl bg-white border border-stone-200 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-              <div className="w-12 h-12 rounded-2xl bg-stone-900 text-white flex items-center justify-center text-lg mb-6 group-hover:scale-110 transition-transform">
-                <FaIcon name="fa-solid fa-qrcode" />
-              </div>
-              <h3 className="text-base font-bold text-stone-900 mb-2">QR Code table</h3>
-              <p className="text-xs sm:text-sm text-stone-500 leading-relaxed">
-                Vos clients scannent, voient le menu et commandent depuis leur téléphone.
-              </p>
-            </div>
-
-            {/* Card 2: Plats en 3D */}
-            <div className="p-7 rounded-3xl bg-white border border-stone-200 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-              <div className="w-12 h-12 rounded-2xl bg-stone-900 text-white flex items-center justify-center text-lg mb-6 group-hover:scale-110 transition-transform">
-                <FaIcon name="fa-solid fa-cube" />
-              </div>
-              <h3 className="text-base font-bold text-stone-900 mb-2">Plats en 3D</h3>
-              <p className="text-xs sm:text-sm text-stone-500 leading-relaxed">
-                Une expérience immersive unique sur les fiches produits.
-              </p>
-            </div>
-
-            {/* Card 3: Gestion de menu */}
-            <div className="p-7 rounded-3xl bg-white border border-stone-200 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-              <div className="w-12 h-12 rounded-2xl bg-stone-900 text-white flex items-center justify-center text-lg mb-6 group-hover:scale-110 transition-transform">
-                <FaIcon name="fa-solid fa-utensils" />
-              </div>
-              <h3 className="text-base font-bold text-stone-900 mb-2">Gestion de menu</h3>
-              <p className="text-xs sm:text-sm text-stone-500 leading-relaxed">
-                Créez plats, catégories et menus en toute simplicité.
-              </p>
-            </div>
-
-            {/* Card 4: Analytics temps réel */}
-            <div className="p-7 rounded-3xl bg-white border border-stone-200 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-              <div className="w-12 h-12 rounded-2xl bg-stone-900 text-white flex items-center justify-center text-lg mb-6 group-hover:scale-110 transition-transform">
-                <FaIcon name="fa-solid fa-wand-magic-sparkles" />
-              </div>
-              <h3 className="text-base font-bold text-stone-900 mb-2">Analytics temps réel</h3>
-              <p className="text-xs sm:text-sm text-stone-500 leading-relaxed">
-                Suivez votre chiffre d'affaires et vos plats populaires.
-              </p>
-            </div>
+                <div>
+                  <div className="text-xs font-bold text-stone-900">En cuisine en 2s</div>
+                  <div className="text-[11px] text-emerald-700 font-semibold">0 attente serveur</div>
+                </div>
+              </motion.div>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* 3. MOSAIC PHOTO GALLERY (Screenshot 3) */}
-      <section className="py-16 md:py-24 bg-stone-50/50 border-t border-stone-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-stone-900 tracking-tight mb-3">
-            Une expérience qui donne faim
-          </h2>
-          <p className="text-sm sm:text-base text-stone-500 max-w-2xl mx-auto mb-12">
-            Des plats sublimés, des restaurants accueillants — découvrez l'univers QResto en images.
-          </p>
-
-          {/* Bento grid layout matching Screenshot 3 */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6">
-            {/* Left Large Vertical Photo */}
-            <div className="md:col-span-6 rounded-3xl overflow-hidden shadow-sm relative group h-80 md:h-[500px] border border-stone-200 bg-stone-100">
-              <img
-                src="/src/assets/images/resto_ambiance_1790196207320.jpg"
-                alt="Ambiance restaurant moderne"
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-stone-950/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
-                <p className="text-white text-sm font-semibold">Ambiance chaleureuse & accueil soigné</p>
-              </div>
+      {/* 2. PROCESSUS FLUIDE EN 4 ÉTAPES (Scroll Reveal) */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white border-y border-stone-200/80">
+        <div className="max-w-7xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="max-w-2xl mx-auto mb-14"
+          >
+            <div className="text-xs uppercase font-extrabold tracking-widest text-amber-700 mb-2">
+              Expérience Sans Friction
             </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-stone-950 font-display">
+              Comment ça marche pour vos clients ?
+            </h2>
+            <p className="text-sm sm:text-base text-stone-500 mt-3 font-normal">
+              De l’installation à table jusqu’au régal, tout se fait en 4 étapes simples et agréables.
+            </p>
+          </motion.div>
 
-            {/* Right 2x2 Grid */}
-            <div className="md:col-span-6 grid grid-cols-2 gap-4 sm:gap-6">
-              {/* Photo 1: Chicken */}
-              <div className="rounded-3xl overflow-hidden shadow-sm relative group h-40 md:h-[238px] border border-stone-200 bg-stone-100">
-                <img
-                  src="/src/assets/images/poulet_braise_1790196218496.jpg"
-                  alt="Poulet braisé croustillant"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-
-              {/* Photo 2: Pizza */}
-              <div className="rounded-3xl overflow-hidden shadow-sm relative group h-40 md:h-[238px] border border-stone-200 bg-stone-100">
-                <img
-                  src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80"
-                  alt="Pizza artisanale au feu de bois"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-
-              {/* Photo 3: Fries */}
-              <div className="rounded-3xl overflow-hidden shadow-sm relative group h-40 md:h-[238px] border border-stone-200 bg-stone-100">
-                <img
-                  src="https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&w=800&q=80"
-                  alt="Frites croustillantes dorées"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-
-              {/* Photo 4: Fresh salad & Juice */}
-              <div className="rounded-3xl overflow-hidden shadow-sm relative group h-40 md:h-[238px] border border-stone-200 bg-stone-100">
-                <img
-                  src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80"
-                  alt="Salade fraîche et jus d'orange pressé"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-            </div>
+          {/* 4 Process Cards with motion hover */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                step: '01',
+                title: 'Scan à table',
+                desc: 'Le client pointe son smartphone sur le QR code fixé à sa table. Le menu s’ouvre sans installer aucune application.',
+                icon: QrCode,
+              },
+              {
+                step: '02',
+                title: 'Visualisation 3D',
+                desc: 'Il découvre vos plats avec photos haute résolution et inspecte les spécialités sous tous les angles en 3D 360°.',
+                icon: RotateCw,
+              },
+              {
+                step: '03',
+                title: 'Commande immédiate',
+                desc: 'Le client personnalise ses cuissons ou accompagnements et valide son panier. La commande est transmise en cuisine.',
+                icon: Utensils,
+              },
+              {
+                step: '04',
+                title: 'Paiement sans attente',
+                desc: 'Règlement en un clic par MTN MoMo, Moov Money, Carte ou en espèces auprès du serveur.',
+                icon: ShieldCheck,
+              },
+            ].map((item, index) => {
+              const IconComp = item.icon;
+              return (
+                <motion.div
+                  key={item.step}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  whileHover={{ y: -6, scale: 1.01 }}
+                  className="bg-[#fbf9f5] rounded-3xl p-6 border border-stone-200/90 text-left relative flex flex-col justify-between transition-shadow hover:shadow-xl hover:shadow-stone-200/50"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-700 flex items-center justify-center">
+                        <IconComp className="w-6 h-6" />
+                      </div>
+                      <span className="text-2xl font-black text-stone-300 font-display">{item.step}</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-stone-900 mb-2">{item.title}</h3>
+                    <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-normal">{item.desc}</p>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* 4. LOCAL GASTRONOMY SECTION (Screenshot 4) */}
-      <section className="py-20 md:py-28 bg-white border-t border-stone-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-stone-900 tracking-tight mb-3">
-            Une cuisine 100% locale
-          </h2>
-          <p className="text-sm sm:text-base text-stone-500 max-w-2xl mx-auto mb-14">
-            Du wagashi au poulet braisé, QResto met en valeur la richesse de la gastronomie béninoise.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-            {/* Category 1: Grillades & braisés */}
-            <div className="rounded-3xl overflow-hidden border border-stone-200 bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-              <div className="relative h-56 overflow-hidden bg-stone-100">
-                <img
-                  src="/src/assets/images/poulet_braise_1790196218496.jpg"
-                  alt="Grillades et braisés"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent flex items-end p-5">
-                  <h3 className="text-lg font-black text-white">Grillades & braisés</h3>
-                </div>
+      {/* 3. GALERIE INTERACTIVE DE SPÉCIALITÉS & VISUALISATION 3D 360° */}
+      <section className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12"
+          >
+            <div>
+              <div className="text-xs uppercase font-extrabold tracking-widest text-amber-700 mb-2">
+                Innovation Gastronomique
               </div>
-              <div className="p-5">
-                <p className="text-xs sm:text-sm text-stone-500 leading-relaxed">
-                  Poulet braisé, poisson grillé, viandes au feu de bois
-                </p>
-              </div>
+              <h2 className="text-3xl sm:text-4xl font-black text-stone-950 font-display">
+                Plats signatures & immersion 3D
+              </h2>
+              <p className="text-sm sm:text-base text-stone-500 mt-2 font-normal">
+                Permettez à vos convives de voir exactement ce qu’ils vont déguster avant de commander.
+              </p>
             </div>
 
-            {/* Category 2: Plats traditionnels */}
-            <div className="rounded-3xl overflow-hidden border border-stone-200 bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-              <div className="relative h-56 overflow-hidden bg-stone-100">
-                <img
-                  src="/src/assets/images/wagashi_amiwo_1790196228866.jpg"
-                  alt="Plats traditionnels béninois"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent flex items-end p-5">
-                  <h3 className="text-lg font-black text-white">Plats traditionnels</h3>
-                </div>
-              </div>
-              <div className="p-5">
-                <p className="text-xs sm:text-sm text-stone-500 leading-relaxed">
-                  Wagashi, atassi, amiwo, et tous les classiques du Bénin
-                </p>
-              </div>
+            {/* Filter Buttons */}
+            <div className="flex items-center gap-1.5 p-1 bg-stone-200/60 rounded-2xl self-start md:self-auto">
+              {[
+                { id: 'all', label: 'Toutes les spécialités' },
+                { id: 'signature', label: 'Plats signatures' },
+                { id: 'street', label: 'Street food' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveSpecialtyTab(tab.id as any)}
+                  className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                    activeSpecialtyTab === tab.id
+                      ? 'bg-white text-stone-950 shadow-sm'
+                      : 'text-stone-600 hover:text-stone-950'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
+          </motion.div>
 
-            {/* Category 3: Street-food & snacks (Fixed with authentic image!) */}
-            <div className="rounded-3xl overflow-hidden border border-stone-200 bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-              <div className="relative h-56 overflow-hidden bg-stone-100">
-                <img
-                  src="/src/assets/images/akara_streetfood_1790196240482.jpg"
-                  alt="Street-food & snacks"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent flex items-end p-5">
-                  <h3 className="text-lg font-black text-white">Street-food & snacks</h3>
+          {/* Dishes Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {filteredDishes.map((dish, idx) => (
+              <motion.div
+                key={dish.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: idx * 0.1 }}
+                whileHover={{ y: -6 }}
+                className="bg-white rounded-3xl overflow-hidden border border-stone-200/90 shadow-xs hover:shadow-xl hover:shadow-stone-200/60 transition-all flex flex-col justify-between group"
+              >
+                <div>
+                  <div className="relative h-48 overflow-hidden bg-stone-100">
+                    <img
+                      src={dish.image}
+                      alt={dish.name}
+                      className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500"
+                    />
+                    <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-stone-900/80 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-amber-400" />
+                      <span>{dish.prepTime}</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelected3DDish(dish)}
+                      className="absolute bottom-3 right-3 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-extrabold shadow-md flex items-center gap-1.5 cursor-pointer hover:scale-105 transition-all"
+                    >
+                      <RotateCw className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '8s' }} />
+                      <span>Voir en 3D</span>
+                    </button>
+                  </div>
+
+                  <div className="p-5">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-semibold text-amber-800 uppercase tracking-wider">
+                        Bénin Gourmand
+                      </span>
+                      <div className="flex items-center gap-1 text-xs font-bold text-amber-600">
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <span>{dish.rating}</span>
+                      </div>
+                    </div>
+
+                    <h3 className="text-base font-bold text-stone-900 leading-snug mb-2 group-hover:text-amber-700 transition-colors">
+                      {dish.name}
+                    </h3>
+                    <p className="text-xs text-stone-500 leading-relaxed line-clamp-2 mb-4 font-normal">
+                      {dish.description}
+                    </p>
+
+                    <div className="flex flex-wrap gap-1.5 mb-4">
+                      {dish.ingredients.slice(0, 2).map((ing) => (
+                        <span key={ing} className="px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 text-[10px] font-medium">
+                          {ing}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="p-5">
-                <p className="text-xs sm:text-sm text-stone-500 leading-relaxed">
-                  Atassi, akara, beignets et douceurs locales
-                </p>
-              </div>
-            </div>
+
+                <div className="p-5 pt-0 border-t border-stone-100 mt-2 flex items-center justify-between">
+                  <div>
+                    <span className="text-base font-black text-stone-950 font-display">
+                      {dish.price.toLocaleString('fr-FR')}
+                    </span>
+                    <span className="text-[10px] font-bold text-stone-500 ml-1">FCFA</span>
+                  </div>
+
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => navigateTo('restaurant-detail', { slug: 'chez-mama-benin', table: '4' })}
+                    className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Commander
+                  </motion.button>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* 5. TESTIMONIALS SECTION (Screenshot 5) */}
-      <section className="py-20 md:py-28 bg-stone-50/60 border-t border-stone-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-stone-900 tracking-tight mb-3">
-            Ils digitalisent déjà avec QResto
-          </h2>
-          <p className="text-sm sm:text-base text-stone-500 max-w-2xl mx-auto mb-14">
-            Des restaurateurs africains qui ont transformé leur quotidien.
-          </p>
+      {/* 4. SIMULATEUR INTERACTIF DE QR CODE EN DIRECT POUR RESTAURATEURS */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-stone-900 text-white relative overflow-hidden">
+        {/* Subtle decorative grid background */}
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
-            {/* Testimonial 1 */}
-            <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
-              <div>
-                <span className="text-amber-400 text-3xl font-serif font-black leading-none block mb-3">”</span>
-                <p className="text-xs sm:text-sm text-stone-700 leading-relaxed mb-6 font-normal">
-                  "Depuis QResto, mes clients consultent le menu sur leur téléphone et commandent sans attendre un serveur. Mon chiffre d'affaires a augmenté de 30%."
-                </p>
+        <div className="max-w-7xl mx-auto relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            {/* Left Column: Interactive QR Controls */}
+            <div className="lg:col-span-7 text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold mb-4">
+                <QrCode className="w-3.5 h-3.5" />
+                <span>Simulateur en direct</span>
               </div>
-              <div>
-                <div className="flex items-center gap-1 text-amber-400 text-xs mb-4">
-                  <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-                </div>
-                <div className="flex items-center gap-3 pt-3 border-t border-stone-100">
-                  <img
-                    src="/src/assets/images/chef_avatar_aicha_1790196251027.jpg"
-                    alt="Aïcha Diallo"
-                    className="w-10 h-10 rounded-full object-cover border border-stone-200 shrink-0"
+
+              <h2 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight mb-4 font-display">
+                Personnalisez vos QR codes de tables en quelques clics
+              </h2>
+
+              <p className="text-stone-300 text-sm sm:text-base leading-relaxed mb-8 max-w-xl font-normal">
+                Chaque table dispose de son propre QR code sécurisé. Le client scanne, le numéro de table est automatiquement injecté et la commande part directement au bon endroit.
+              </p>
+
+              {/* Live Playground Controls */}
+              <div className="bg-stone-800/80 backdrop-blur-md rounded-3xl p-6 border border-stone-700/80 space-y-5 max-w-xl">
+                <div>
+                  <label className="block text-xs font-bold text-stone-300 mb-2">
+                    Nom de votre restaurant
+                  </label>
+                  <input
+                    type="text"
+                    value={demoRestoName}
+                    onChange={(e) => setDemoRestoName(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-stone-900 text-white rounded-xl border border-stone-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-sm outline-hidden font-medium"
                   />
-                  <div>
-                    <h4 className="text-xs font-bold text-stone-900">Aïcha Diallo</h4>
-                    <p className="text-[11px] text-stone-400">Le Baobab Gourmand, Cotonou</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-300 mb-2">
+                    Numéro de table : <span className="text-amber-400 font-extrabold text-sm">Table #{demoTable}</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 4, 8, 12, 16].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setDemoTable(num)}
+                        className={`w-10 h-10 rounded-xl font-black text-xs transition-all cursor-pointer ${
+                          demoTable === num
+                            ? 'bg-amber-500 text-stone-950 scale-105 shadow-md shadow-amber-500/30'
+                            : 'bg-stone-900 text-stone-400 hover:text-white hover:bg-stone-700'
+                        }`}
+                      >
+                        #{num}
+                      </button>
+                    ))}
                   </div>
+                </div>
+
+                <div className="pt-2 flex flex-wrap items-center gap-3">
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() =>
+                      navigateTo('restaurant-detail', {
+                        slug: 'chez-mama-benin',
+                        table: demoTable.toString(),
+                      })
+                    }
+                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 font-black text-xs shadow-lg hover:shadow-amber-500/30 transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <Smartphone className="w-4 h-4" />
+                    <span>Tester le scan de la Table #{demoTable}</span>
+                  </motion.button>
+
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-4 py-3 rounded-xl bg-stone-900 hover:bg-stone-700 text-stone-300 hover:text-white font-bold text-xs transition-colors flex items-center gap-1.5"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Imprimer simulation</span>
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Testimonial 2 */}
-            <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
-              <div>
-                <span className="text-amber-400 text-3xl font-serif font-black leading-none block mb-3">”</span>
-                <p className="text-xs sm:text-sm text-stone-700 leading-relaxed mb-6 font-normal">
-                  "Le QR code sur les tables a tout changé. Les clients adorent voir les plats en 3D avant de commander. Vraiment moderne."
-                </p>
-              </div>
-              <div>
-                <div className="flex items-center gap-1 text-amber-400 text-xs mb-4">
-                  <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+            {/* Right Column: High-Res Chevalet QR Card Preview */}
+            <div className="lg:col-span-5 flex justify-center">
+              <motion.div
+                key={demoTable}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.4 }}
+                className="w-full max-w-sm bg-white rounded-3xl p-6 text-stone-900 shadow-2xl border-4 border-amber-500/40 text-center relative"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-amber-500 text-stone-950 font-black text-lg mx-auto flex items-center justify-center mb-3">
+                  Q
                 </div>
-                <div className="flex items-center gap-3 pt-3 border-t border-stone-100">
-                  <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center text-xs shrink-0">
-                    KA
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-stone-900">Koffi Adjahi</h4>
-                    <p className="text-[11px] text-stone-400">Chez Mama Adjoa, Porto-Novo</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+                <h4 className="text-base font-extrabold text-stone-950 leading-tight">
+                  {demoRestoName || 'Mon Restaurant'}
+                </h4>
+                <p className="text-[11px] text-stone-500 mt-0.5">Scannez pour commander sans attente</p>
 
-            {/* Testimonial 3 */}
-            <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
-              <div>
-                <span className="text-amber-400 text-3xl font-serif font-black leading-none block mb-3">”</span>
-                <p className="text-xs sm:text-sm text-stone-700 leading-relaxed mb-6 font-normal">
-                  "Je gère mon menu, mes commandes et mes livraisons depuis un seul tableau de bord. Simple, rapide, efficace."
-                </p>
-              </div>
-              <div>
-                <div className="flex items-center gap-1 text-amber-400 text-xs mb-4">
-                  <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                {/* QR Code Container */}
+                <div className="my-5 p-4 bg-stone-50 rounded-2xl border-2 border-dashed border-stone-200 inline-block shadow-inner">
+                  {/* Generated QR representation */}
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                      `https://qresto.africa/#menu-chez-mama-benin?table=${demoTable}`
+                    )}&color=1c1917`}
+                    alt="QR Code Table"
+                    className="w-40 h-40 mx-auto rounded-lg"
+                  />
                 </div>
-                <div className="flex items-center gap-3 pt-3 border-t border-stone-100">
-                  <div className="w-10 h-10 rounded-full bg-stone-100 text-stone-800 font-bold flex items-center justify-center text-xs shrink-0">
-                    FA
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-stone-900">Fatou Akotègnon</h4>
-                    <p className="text-[11px] text-stone-400">Saveurs du Terroir, Parakou</p>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Testimonial 4 */}
-            <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
-              <div>
-                <span className="text-amber-400 text-3xl font-serif font-black leading-none block mb-3">”</span>
-                <p className="text-xs sm:text-sm text-stone-700 leading-relaxed mb-6 font-normal">
-                  "La digitalisation de mon menu s'est faite en 10 minutes. Je partage le lien partout sur mes réseaux sociaux."
-                </p>
-              </div>
-              <div>
-                <div className="flex items-center gap-1 text-amber-400 text-xs mb-4">
-                  <span>★</span><span>★</span><span>★</span><span>★</span><span className="text-stone-300">★</span>
+                {/* Table Badge */}
+                <div className="inline-block px-4 py-1.5 rounded-full bg-stone-900 text-white font-black text-xs uppercase tracking-wider mb-2">
+                  Table #{demoTable}
                 </div>
-                <div className="flex items-center gap-3 pt-3 border-t border-stone-100">
-                  <div className="w-10 h-10 rounded-full bg-yellow-100 text-yellow-800 font-bold flex items-center justify-center text-xs shrink-0">
-                    IT
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-stone-900">Ibrahim Touré</h4>
-                    <p className="text-[11px] text-stone-400">Wagashi Express, Abomey</p>
-                  </div>
+
+                <div className="text-[10px] text-stone-400 font-medium">
+                  Compatible iPhone & Android · 100% sans application
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 6. FAQ SECTION (Screenshot 6) */}
-      <section className="py-20 md:py-28 bg-white border-t border-stone-100">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-amber-50 border border-amber-200/80 text-amber-800 text-xs font-semibold mb-4">
-            <span>✨</span>
-            <span>Questions fréquentes</span>
+      {/* 5. RESTAURANTS PARTENAIRES PHARES (Scroll Reveal) */}
+      <section className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12"
+          >
+            <div>
+              <div className="text-xs uppercase font-extrabold tracking-widest text-amber-700 mb-2">
+                Établissements Certifiés
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-black text-stone-950 font-display">
+                Restaurants digitalisés à Cotonou
+              </h2>
+              <p className="text-sm sm:text-base text-stone-500 mt-2 font-normal">
+                Découvrez comment les meilleurs chefs et gérants modernisent leur service en salle.
+              </p>
+            </div>
+
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigateTo('restaurants')}
+              className="px-5 py-2.5 rounded-xl border border-stone-200 hover:border-stone-900 text-stone-800 font-bold text-xs flex items-center gap-2 self-start md:self-auto transition-colors cursor-pointer"
+            >
+              <span>Voir tous les restaurants</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </motion.button>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {featuredRestaurants.map((resto, i) => (
+              <motion.div
+                key={resto.name}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.12 }}
+                whileHover={{ y: -6 }}
+                className="bg-[#fbf9f5] rounded-3xl overflow-hidden border border-stone-200/90 shadow-xs hover:shadow-xl transition-all flex flex-col justify-between group cursor-pointer"
+                onClick={() => navigateTo('restaurant-detail', { slug: resto.slug })}
+              >
+                <div>
+                  <div className="relative h-52 overflow-hidden bg-stone-100">
+                    <img
+                      src={resto.image}
+                      alt={resto.name}
+                      className="w-full h-full object-cover group-hover:scale-106 transition-transform duration-500"
+                    />
+                    <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-stone-900/80 backdrop-blur-xs text-white text-[10px] font-bold">
+                      {resto.badge}
+                    </div>
+                    <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                      <span>{resto.status}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-stone-500">{resto.neighborhood}</span>
+                      <div className="flex items-center gap-1 text-xs font-bold text-amber-600">
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <span>{resto.rating}</span>
+                        <span className="text-stone-400 font-normal">({resto.reviews})</span>
+                      </div>
+                    </div>
+
+                    <h3 className="text-xl font-bold text-stone-950 mb-2 group-hover:text-amber-700 transition-colors font-display">
+                      {resto.name}
+                    </h3>
+                    <p className="text-xs text-stone-600 leading-relaxed font-normal mb-4">
+                      {resto.specialty}
+                    </p>
+
+                    <div className="flex items-center gap-2 text-xs font-medium text-stone-500">
+                      <QrCode className="w-3.5 h-3.5 text-amber-600" />
+                      <span>{resto.tables} tables équipées en QR dynamique</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 pt-0 border-t border-stone-200/60 mt-3 flex items-center justify-between">
+                  <span className="text-xs font-bold text-stone-700 group-hover:text-stone-950">
+                    Consulter la carte
+                  </span>
+                  <div className="w-8 h-8 rounded-full bg-stone-900 text-white flex items-center justify-center group-hover:bg-amber-600 transition-colors">
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
+        </div>
+      </section>
 
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-stone-900 tracking-tight mb-3">
-            Tout ce que vous voulez savoir
-          </h2>
-          <p className="text-sm sm:text-base text-stone-500 max-w-xl mx-auto mb-12">
-            Une question avant de vous lancer ? On a sûrement la réponse.
-          </p>
+      {/* 6. CALCULATEUR DE TARIFS SANS SURPRISE (Scroll Reveal) */}
+      <section className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-[#fbf9f5]">
+        <div className="max-w-6xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="max-w-2xl mx-auto mb-12"
+          >
+            <div className="text-xs uppercase font-extrabold tracking-widest text-amber-700 mb-2">
+              Tarification Transparente
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-stone-950 font-display">
+              Un investissement rentabilisé dès le 1er jour
+            </h2>
+            <p className="text-sm sm:text-base text-stone-500 mt-2 font-normal">
+              Commencez gratuitement, puis choisissez la formule adaptée à votre rythme sans engagement.
+            </p>
 
-          {/* Accordion list */}
-          <div className="space-y-3 text-left mb-12">
+            {/* Monthly / Yearly Toggle */}
+            <div className="mt-6 inline-flex items-center p-1 bg-stone-200/80 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setBillingCycle('monthly')}
+                className={`px-5 py-2 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
+                  billingCycle === 'monthly'
+                    ? 'bg-white text-stone-950 shadow-sm'
+                    : 'text-stone-600 hover:text-stone-950'
+                }`}
+              >
+                Paiement Mensuel
+              </button>
+              <button
+                type="button"
+                onClick={() => setBillingCycle('yearly')}
+                className={`px-5 py-2 text-xs font-extrabold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                  billingCycle === 'yearly'
+                    ? 'bg-stone-900 text-white shadow-sm'
+                    : 'text-stone-600 hover:text-stone-950'
+                }`}
+              >
+                <span>Annuel</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500 text-stone-950 font-black">
+                  -20%
+                </span>
+              </button>
+            </div>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left items-stretch">
+            {/* Plan 1: Starter */}
+            <motion.div
+              whileHover={{ y: -6 }}
+              className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Starter</span>
+                <div className="mt-3 mb-6">
+                  <span className="text-4xl font-black text-stone-950 font-display">0</span>
+                  <span className="text-sm font-bold text-stone-500 ml-1">FCFA / mois</span>
+                </div>
+                <p className="text-xs text-stone-600 leading-relaxed mb-6 font-normal">
+                  Idéal pour tester la digitalisation de votre carte sur quelques tables.
+                </p>
+                <div className="space-y-3 border-t border-stone-100 pt-6">
+                  {['Jusqu’à 5 tables QR', 'Menu digital complet', 'Support standard par email', 'Pas de commission cachée'].map(
+                    (feat) => (
+                      <div key={feat} className="flex items-center gap-2.5 text-xs text-stone-700">
+                        <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>{feat}</span>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigateTo('register-restaurant')}
+                className="mt-8 w-full py-3 rounded-xl border border-stone-300 hover:border-stone-900 text-stone-900 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Démarrer gratuitement
+              </button>
+            </motion.div>
+
+            {/* Plan 2: Pro (Highlight) */}
+            <motion.div
+              whileHover={{ y: -6 }}
+              className="bg-stone-950 text-white rounded-3xl p-8 border-2 border-amber-500 shadow-2xl relative flex flex-col justify-between"
+            >
+              <div className="absolute -top-3.5 right-6 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 text-[10px] font-black uppercase tracking-wider shadow-md">
+                Recommandé
+              </div>
+
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Pro Restaurant</span>
+                <div className="mt-3 mb-6">
+                  <span className="text-4xl font-black text-white font-display">
+                    {billingCycle === 'monthly' ? '5 000' : '4 000'}
+                  </span>
+                  <span className="text-sm font-bold text-stone-400 ml-1">FCFA / mois</span>
+                </div>
+                <p className="text-xs text-stone-300 leading-relaxed mb-6 font-normal">
+                  Pour les restaurants en activité voulant maximiser le chiffre d’affaires et la rotation des tables.
+                </p>
+                <div className="space-y-3 border-t border-stone-800 pt-6">
+                  {[
+                    'Tables illimitées avec QR dynamique',
+                    'Intégration Mobile Money (MTN & Moov)',
+                    'Visualiseur 3D interactif des plats',
+                    'Dashboard gérant avec KPIs en direct',
+                    'Impression chevalets haute définition',
+                  ].map((feat) => (
+                    <div key={feat} className="flex items-center gap-2.5 text-xs text-stone-200">
+                      <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigateTo('register-restaurant')}
+                className="mt-8 w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 font-black text-xs shadow-lg hover:shadow-amber-500/30 transition-all cursor-pointer"
+              >
+                Choisir la formule Pro
+              </motion.button>
+            </motion.div>
+
+            {/* Plan 3: Business */}
+            <motion.div
+              whileHover={{ y: -6 }}
+              className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Business & Chaînes</span>
+                <div className="mt-3 mb-6">
+                  <span className="text-4xl font-black text-stone-950 font-display">
+                    {billingCycle === 'monthly' ? '8 000' : '6 500'}
+                  </span>
+                  <span className="text-sm font-bold text-stone-500 ml-1">FCFA / mois</span>
+                </div>
+                <p className="text-xs text-stone-600 leading-relaxed mb-6 font-normal">
+                  Pour les hôtels, maquis réputés et enseignes multi-établissements.
+                </p>
+                <div className="space-y-3 border-t border-stone-100 pt-6">
+                  {[
+                    'Multi-restaurants & succursales',
+                    'Export comptable & analytics avancés',
+                    'Modélisation 3D sur-mesure de vos plats',
+                    'Accompagnement et support VIP 7j/7',
+                  ].map((feat) => (
+                    <div key={feat} className="flex items-center gap-2.5 text-xs text-stone-700">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigateTo('register-restaurant')}
+                className="mt-8 w-full py-3 rounded-xl border border-stone-300 hover:border-stone-900 text-stone-900 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Contacter pour Business
+              </button>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. FAQ AVEC ANIMATION ACCORDÉON (Scroll Reveal) */}
+      <section className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-white border-t border-stone-200/80">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-14"
+          >
+            <div className="text-xs uppercase font-extrabold tracking-widest text-amber-700 mb-2">
+              Questions Fréquentes
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-stone-950 font-display">
+              Tout ce que vous devez savoir
+            </h2>
+          </motion.div>
+
+          <div className="space-y-3">
             {faqItems.map((item, idx) => {
               const isOpen = openFaqIndex === idx;
               return (
                 <div
-                  key={idx}
-                  className="rounded-2xl border border-stone-200 bg-white overflow-hidden transition-all duration-200 shadow-2xs hover:border-stone-300"
+                  key={item.q}
+                  className="bg-[#fbf9f5] rounded-2xl border border-stone-200/90 overflow-hidden transition-colors"
                 >
                   <button
                     type="button"
                     onClick={() => toggleFaq(idx)}
-                    className="w-full px-6 py-4 flex items-center justify-between text-left gap-4"
+                    className="w-full px-6 py-4.5 text-left flex items-center justify-between gap-4 font-bold text-stone-900 text-sm sm:text-base cursor-pointer"
                   >
-                    <span className="text-sm sm:text-base font-bold text-stone-900">
-                      {item.q}
-                    </span>
-                    <FaIcon
-                      name="fa-solid fa-chevron-down"
-                      className={`text-stone-400 text-xs transition-transform duration-300 shrink-0 ${
-                        isOpen ? 'rotate-180 text-amber-600' : ''
-                      }`}
-                    />
+                    <span>{item.q}</span>
+                    <motion.div
+                      animate={{ rotate: isOpen ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="shrink-0"
+                    >
+                      <ChevronDown className="w-5 h-5 text-stone-500" />
+                    </motion.div>
                   </button>
 
-                  {isOpen && (
-                    <div className="px-6 pb-5 pt-1 text-xs sm:text-sm text-stone-600 leading-relaxed border-t border-stone-100 bg-stone-50/50 animate-fade-in-up">
-                      {item.a}
-                    </div>
-                  )}
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: 'easeInOut' }}
+                      >
+                        <div className="px-6 pb-5 pt-1 text-xs sm:text-sm text-stone-600 leading-relaxed border-t border-stone-200/60 font-normal">
+                          {item.a}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               );
             })}
           </div>
+        </div>
+      </section>
 
-          {/* Bottom Prompt & Button */}
-          <div className="flex flex-col items-center">
-            <p className="text-xs text-stone-500 mb-3">Prêt à digitaliser votre restaurant ?</p>
-            <button
+      {/* 8. BANNIÈRE CTA FINALE */}
+      <section className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-tr from-stone-950 via-stone-900 to-amber-950 text-white relative overflow-hidden text-center">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-3xl mx-auto relative z-10">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-3xl sm:text-5xl font-black mb-6 font-display tracking-tight leading-tight"
+          >
+            Prêt à transformer l’expérience de votre restaurant ?
+          </motion.h2>
+
+          <p className="text-stone-300 text-sm sm:text-base leading-relaxed mb-8 max-w-xl mx-auto font-normal">
+            Rejoignez les dizaines d’établissements qui modernisent la restauration en Afrique avec QResto.
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <motion.button
               type="button"
+              whileHover={{ scale: 1.04, y: -2 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => navigateTo('register-restaurant')}
-              className="px-7 py-3.5 rounded-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-stone-950 font-bold text-sm shadow-md transition-all duration-200 hover:scale-[1.02] flex items-center gap-2"
+              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-stone-950 font-black text-sm shadow-xl shadow-amber-500/25 hover:shadow-amber-500/40 transition-all flex items-center gap-2 cursor-pointer"
             >
+              <Store className="w-4 h-4" />
               <span>Créer mon restaurant gratuitement</span>
-              <FaIcon name="fa-solid fa-arrow-right" className="text-xs" />
-            </button>
+            </motion.button>
+
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigateTo('restaurants')}
+              className="px-6 py-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Utensils className="w-4 h-4 text-amber-400" />
+              <span>Voir les restaurants partenaires</span>
+            </motion.button>
           </div>
         </div>
       </section>
 
-      {/* 7. STATS & DARK CTA BANNER (Screenshot 7) */}
-      <section className="py-16 md:py-24 bg-white border-t border-stone-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          {/* 4 Stat Cards Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 text-center">
-            <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs">
-              <h3 className="text-3xl sm:text-4xl font-black text-amber-500 mb-1">500+</h3>
-              <p className="text-xs text-stone-500 font-medium">Restaurants</p>
-            </div>
-            <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs">
-              <h3 className="text-3xl sm:text-4xl font-black text-amber-500 mb-1">50K+</h3>
-              <p className="text-xs text-stone-500 font-medium">Commandes / mois</p>
-            </div>
-            <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs">
-              <h3 className="text-3xl sm:text-4xl font-black text-amber-500 mb-1">12</h3>
-              <p className="text-xs text-stone-500 font-medium">Villes couvertes</p>
-            </div>
-            <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs">
-              <h3 className="text-3xl sm:text-4xl font-black text-amber-500 mb-1">98%</h3>
-              <p className="text-xs text-stone-500 font-medium">Satisfaction</p>
-            </div>
-          </div>
+      {/* 9. MODAL INTERACTIF DE VISUALISATION 3D 360° */}
+      <AnimatePresence>
+        {selected3DDish && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative border border-stone-200 text-left overflow-hidden"
+            >
+              <button
+                type="button"
+                onClick={() => setSelected3DDish(null)}
+                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-          {/* Dark CTA Banner */}
-          <div className="rounded-3xl bg-stone-900 text-white p-8 sm:p-12 md:p-16 text-center shadow-xl relative overflow-hidden">
-            <div className="relative z-10 max-w-2xl mx-auto">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight mb-3">
-                Prêt à rejoindre QResto ?
-              </h2>
-              <p className="text-xs sm:text-sm text-stone-400 mb-8 max-w-md mx-auto leading-relaxed">
-                Digitalisez votre restaurant et recevez vos commandes en quelques minutes.
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => navigateTo('register-restaurant')}
-                  className="px-6 py-3 rounded-full bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs sm:text-sm transition-all duration-200 hover:scale-[1.02]"
-                >
-                  Créer mon restaurant
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigateTo('restaurants')}
-                  className="px-6 py-3 rounded-full bg-stone-800 hover:bg-stone-700 text-white font-medium text-xs sm:text-sm border border-stone-700 transition-all duration-200 hover:scale-[1.02]"
-                >
-                  Explorer les restaurants
-                </button>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-xs font-bold flex items-center gap-1">
+                  <RotateCw className="w-3 h-3 text-amber-700 animate-spin" />
+                  <span>Visualiseur 3D Interactif</span>
+                </span>
+                <span className="text-xs text-stone-400 font-medium">Glissez la souris ou touchez pour pivoter</span>
               </div>
-            </div>
+
+              <h3 className="text-2xl font-black text-stone-900 font-display mb-1">{selected3DDish.name}</h3>
+              <p className="text-xs text-stone-500 mb-4">{selected3DDish.description}</p>
+
+              {/* Canvas 3D Viewer inside modal */}
+              <div className="relative rounded-2xl overflow-hidden border border-stone-200 bg-stone-950 mb-6">
+                <Dish3DViewer modelType={selected3DDish.modelType} dishName={selected3DDish.name} />
+              </div>
+
+              {/* Bottom modal actions */}
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-stone-100">
+                <div>
+                  <div className="text-xl font-black text-stone-900 font-display">
+                    {selected3DDish.price.toLocaleString('fr-FR')} FCFA
+                  </div>
+                  <div className="text-[11px] text-stone-400">Préparé à la minute · Ingrédients frais</div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelected3DDish(null)}
+                    className="px-4 py-2.5 rounded-xl border border-stone-200 text-stone-700 font-bold text-xs hover:bg-stone-50 transition-colors"
+                  >
+                    Fermer
+                  </button>
+
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      setSelected3DDish(null);
+                      navigateTo('restaurant-detail', { slug: 'chez-mama-benin', table: '4' });
+                    }}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-500 text-white font-bold text-xs shadow-md shadow-amber-600/30 transition-all cursor-pointer"
+                  >
+                    Commander ce plat
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      </section>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -19,6 +19,12 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#d97706',
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -26,7 +32,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr" className="scroll-smooth">
-      <body className="bg-stone-50 text-stone-900 font-sans antialiased selection:bg-amber-500 selection:text-white">
+      <body className="bg-[#fbf9f5] text-stone-900 antialiased selection:bg-amber-600 selection:text-white">
         {children}
       </body>
     </html>
