@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { storage } from '../../lib/storage';

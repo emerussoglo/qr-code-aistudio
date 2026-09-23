@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { useApp, DashboardTab } from '../../context/AppContext';
 import { storage } from '../../lib/storage';

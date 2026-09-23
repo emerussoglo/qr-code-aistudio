@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../../context/AppContext';

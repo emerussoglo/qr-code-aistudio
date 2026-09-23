@@ -613,6 +613,7 @@ export const FAQ_ITEMS: FAQItem[] = [
 // In-Memory & LocalStorage Storage Implementation
 class QRestoStorage {
   private get<T>(key: string, defaultValue: T): T {
+    if (typeof window === 'undefined') return defaultValue;
     try {
       const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : defaultValue;
@@ -622,6 +623,7 @@ class QRestoStorage {
   }
 
   private set<T>(key: string, value: T): void {
+    if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (e) {
@@ -631,6 +633,7 @@ class QRestoStorage {
 
   // Initialization
   public init(): void {
+    if (typeof window === 'undefined') return;
     if (!localStorage.getItem(STORAGE_KEYS.RESTAURANTS)) {
       this.set(STORAGE_KEYS.RESTAURANTS, INITIAL_RESTAURANTS);
     }

@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { FaIcon } from './Icon';
